@@ -19,10 +19,12 @@ a CKA exam questions bank for the fluffy octo sniffle engineers
 # Exam Questions
 
   ## RBAC
-    ### Create role
-    ### rolebinding
-    ### User
-    ### can create and list deployment
+   - Create role
+   - rolebinding
+   - User
+   - Can create and list deployment
+   - clusterrole --> create deployment
+   - role --> list deployment 
 
   ## 
     
