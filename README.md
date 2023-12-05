@@ -49,6 +49,10 @@ However, you need to know some shortcuts as a yaml warrior.
 this mode is similar to dragging your cursor to highlight, and you can delete, copy, paste with it.
 
 # Cluster Install
+first you need to check if the container.d installed by using 
+`systemctl status containerd`
+then if you check kube-apiserver you will see nothing
+`systemctl status kube-apiserver`
 
 make sure that port forwarding is [enabled](https://kubernetes.io/docs/setup/production-environment/container-runtimes/#forwarding-ipv4-and-letting-iptables-see-bridged-traffic)
 
@@ -62,41 +66,45 @@ make sure cgroups are configured for systemd
     SystemdCgroup = true`
 then restart the container d `sudo systemctl restart containerd`
 
-create keyring
+As per docs we should continue with installing the cluster Kubeadm / Kubectl / Kubelet From this [Link](https://v1-27.docs.kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/)
+- create keyring
 
 `sudo mkdir -m 7 /etc/apt/keyrings`
+- Update pakacages
 
-`sudo ap-get update`
+`sudo apt-get update`
 
 `sudo apt-get install -y apt-transport-https ca-certificates curl gpg`
 
-`curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg`
+`curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.27/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg`
 
-`echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.28/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list`
+`echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.27/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list`
 
 `sudo apt-get update`
-`sudo apt-get install -y kubelet kubeadm kubectl`
+- Install the correct version
+
+`sudo apt-get install -y kubeadm=1.27.0-2.1 kubectl=1.27.0-2.1 kubelet=1.27.0-2.1`
+
+then we have to hold all 3
 `sudo apt-mark hold kubelet kubeadm kubectl`
 
-`install kubeadm kubectl and kubelet`
+Then to join nodes we have to booststrap our cluster
+we will start by allocating the Masternode ip address
 
+`ip addr | grep -i eth0`
+then by using kubeadm init we will pass the needed vars
 
-ip addr | grep eth0
+`kubeadm init --apiserver-advertise-address=192.21.161.255 --apiserver-cert-extra-sans=controlplane --pod-network-cidr=10.244.0.0/16`
 
-kubeadm init --apiserver-advertise-address=192.15.120.12 --apiserver-cert-extra-sans=controlplane --pod-network-cidr=10.244.0.0/16
-
-If you lost the token you can create a new one by `kubeadm token create --print-join-command` [reference](https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm-join/#token-based-discovery-with-ca-pinning)
+ **Note If you lost the token you can create a new one by `kubeadm token create --print-join-command` [reference](https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm-join/#token-based-discovery-with-ca-pinning)**
 
 1- how to  know pod network cidr k get nodes -o yaml | grep -i podcidr
 2- kubeadm  token
+
 curl -L0 fflannaelurl > flannel.yaml
 look for container and put --face arg
 
 /net flannel to change the cidr to match the cidr
-
-systemctl status containerd
-
-systemctl status kube-apiserver
 
 cat /etc/kubernetes/manifests 
 # Initialize the Cluster
