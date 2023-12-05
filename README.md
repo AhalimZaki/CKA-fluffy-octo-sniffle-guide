@@ -55,15 +55,25 @@ make sure that port forwarding is [enabled](https://kubernetes.io/docs/setup/pro
 
 
 make sure cgroups are configured for systemd
-
-
+- First you need to open this file with vim `/etc/containerd/config.toml.` then use `%d` to remove everything then put the following lines, to enable cgroups
+`[plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc]
+  ...
+  [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
+    SystemdCgroup = true`
+then restart the container d `sudo systemctl restart containerd`
 
 create keyring
 
-
+`sudo mkdir -m 7 /etc/apt/keyrings`
 
 install kubeadm kubectl and kubelet
 
+ip addr | grep eth0
+
+1- how to  know pod network cidr k get nodes -o yaml | grep -i podcidr
+2- kubeadm  token
+
+/net flannel to change the cidr to match the cidr
 
 systemctl status containerd
 
@@ -78,7 +88,53 @@ cat /etc/kubernetes/manifests
 
 # Node Upgrade
 
+## prepare the node for upgrade
+k cordon $NODENAME
+k drain $NODENAME --ignore-daemonset
+k describe $NODEName (NodeNotSchedulable)
+k describe node node01| grep -i schedule
+k uncordon $NODENAME
 
+## 
+kubeadm upgrade plan | grep -i remote # to capture the remote latest vers
+
+apt update
+apt-cache madison kubeadm
+apt-mark unhold kubeadm && \
+apt-get update && apt-get install -y kubeadm='1.27.0-00' && \
+apt-mark hold kubeadm
+
+kubeadm version
+
+kubeadm upgrade plan
+
+sudo kubeadm upgrade apply v1.27.0
+
+if you get nodes you will still see the 1.26 version because  it capture the kubelet version which we didn't upgrade 
+
+then do 
+`kubectl drain <node-to-drain> --ignore-daemonsets`
+
+apt-mark unhold kubelet kubectl && \
+apt-get update && apt-get install -y kubelet='1.27.x-*' kubectl='1.27.x-*' && \
+apt-mark hold kubelet kubectl
+
+sudo systemctl daemon-reload
+sudo systemctl restart kubelet
+
+kubectl uncordon <node-to-uncordon>
+
+k drain node01 to evacted
+then ssh to node01
+then do 
+sudo kubeadm upgrade node
+apt-mark unhold kubelet kubectl && \
+apt-get update && apt-get install -y kubelet='1.27.x-*' kubectl='1.27.x-*' && \
+apt-mark hold kubelet kubectl
+then 
+
+sudo systemctl daemon-reload
+sudo systemctl restart kubelet
 # etcd backup 
   ## Stacked
   certificates
