@@ -66,12 +66,31 @@ create keyring
 
 `sudo mkdir -m 7 /etc/apt/keyrings`
 
-install kubeadm kubectl and kubelet
+`sudo ap-get update`
+
+`sudo apt-get install -y apt-transport-https ca-certificates curl gpg`
+
+`curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg`
+
+`echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.28/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list`
+
+`sudo apt-get update`
+`sudo apt-get install -y kubelet kubeadm kubectl`
+`sudo apt-mark hold kubelet kubeadm kubectl`
+
+`install kubeadm kubectl and kubelet`
+
 
 ip addr | grep eth0
 
+kubeadm init --apiserver-advertise-address=192.15.120.12 --apiserver-cert-extra-sans=controlplane --pod-network-cidr=10.244.0.0/16
+
+If you lost the token you can create a new one by `kubeadm token create --print-join-command` [reference](https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm-join/#token-based-discovery-with-ca-pinning)
+
 1- how to  know pod network cidr k get nodes -o yaml | grep -i podcidr
 2- kubeadm  token
+curl -L0 fflannaelurl > flannel.yaml
+look for container and put --face arg
 
 /net flannel to change the cidr to match the cidr
 
@@ -85,6 +104,11 @@ cat /etc/kubernetes/manifests
 # CNI
 
 # DNS
+to check the svc we can use curl
+`kubectl exec web -n payroll -- curl web-service.default`
+
+nslookup for a service
+kubectl exec -it hr -- nslookup mysql.payroll > /root/CKA/nslookup.out
 
 # Node Upgrade
 
