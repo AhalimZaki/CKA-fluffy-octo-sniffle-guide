@@ -170,11 +170,59 @@ sudo systemctl restart kubelet
 # etcd backup 
   ## Stacked
   certificates
-  validity
-  
+  - Get the version of etcd
+    k describe pod <etcdpo> -n kube-system
+  - backup the etcd
+  `ETCDCTL_API=3 etcdctl --endpoints --certfile --key= --trusted-ca snapshot save /opt/snapshot=pre-boot.db`
+
+  restore from backup
+`  ETCDCTL_API=3 etcdctl --data-dir /var/lib/etcd-from-backup snapshot restore /opt/snapshot-pre-boot.db`
+
+  and then we need also to change the hostpath in the manifest file which is located in `/etc/kubernetes/manifests/etcd.yaml`
+```hostPath:
+    path: /var/lib/etcd-from-backup
+    type: DirectoryOrCreate
+    name: etcd-data
+    also you need to change the volume mounts
+    volumeMounts:
+      mountPath: /var/lib/etcd-from-backup
+      name: etcd-data
+```
+  - validity
+    if you want to check validity run the following command
+    `openssl x509  -noout -text -in /etc/kubernetes/pki/etcd/server.crt | grep -iA  3 validity`
+  **Note** : for the grep -i `A` is after and 3 for 3 lines and if you want before you should use `B` so it get lines before
+
   ## External
+  to check clusters allocated with a node you can use `kubectl config view`
+  to switch context you can use `k config use-context $CLUSTERCONFIGNAME`
+  you can check the kube-apiserver to check what is the etcd running with it from it's paramters 
 
+  To make a external backup of etcd you should ssh to the controlplane then backup it's etcd using endpoint of advertisment url
+  ```ETCDCTL_API=3 etcdctl --endpoints 192.16.173.12:2379 \
+  --cert=/etc/kubernetes/pki/etcd/server.crt \
+  --key=/etc/kubernetes/pki/etcd/server.key \
+  --cacert=/etc/kubernetes/pki/etcd/ca.crt \
+  snapshot save /opt/cluster1.db
+```
+Then you logout and do a `scp` where did you saved the backup to your currenct `scp cluster1-controlplane:/opt/cluster1.db /opt/cluster1.db`
 
+To do an external server restore you should copy the external back to the external server then ssh into the etcd server `scp /opt/cluster2.db etcd-server:/root`
+
+after that you can restore the snapshoot you did copied from the exteral server
+`ETCDCTL_API=3 etcdctl --data-dir /var/lib/etcd-data-new snapshot restore /root/cluster2.db`
+or by passing the certs
+```
+ETCDCTL_API=3 etcdctl --endpoints 192.16.173.3:2379 \
+  --cert=/etc/etcd/pki/etcd.pem  \
+  --key=/etc/etcd/pki/etcd-key.pem \
+  --cacert=/etc/etcd/pki/ca.pem \
+  --data-dir /var/lib/etcd-data-new snapshot restore /root/cluster2.db
+```
+
+Then you need to change the ownership for the new created dir by using the following command `chown -R etcd:etcd /var/lib/etcd-data-new`
+then you should restart the daemon-reload by using `systemctl daemon-reload`
+then `systemctl restart etcd.service`
 # Imperative Commands 
   ## Doc Links
 
