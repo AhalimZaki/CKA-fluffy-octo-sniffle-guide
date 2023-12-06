@@ -111,6 +111,8 @@ cat /etc/kubernetes/manifests
 
 # CNI
 
+kubectl apply -f CNI
+
 # DNS
 to check the svc we can use curl
 `kubectl exec web -n payroll -- curl web-service.default`
@@ -122,18 +124,26 @@ kubectl exec -it hr -- nslookup mysql.payroll > /root/CKA/nslookup.out
 
 ## prepare the node for upgrade
 k cordon $NODENAME
+
 k drain $NODENAME --ignore-daemonset
+
 k describe $NODEName (NodeNotSchedulable)
+
 k describe node node01| grep -i schedule
+
 k uncordon $NODENAME
 
 ## 
 kubeadm upgrade plan | grep -i remote # to capture the remote latest vers
 
 apt update
+
 apt-cache madison kubeadm
+
 apt-mark unhold kubeadm && \
+
 apt-get update && apt-get install -y kubeadm='1.27.0-00' && \
+
 apt-mark hold kubeadm
 
 kubeadm version
@@ -148,7 +158,9 @@ then do
 `kubectl drain <node-to-drain> --ignore-daemonsets`
 
 apt-mark unhold kubelet kubectl && \
+
 apt-get update && apt-get install -y kubelet='1.27.x-*' kubectl='1.27.x-*' && \
+
 apt-mark hold kubelet kubectl
 
 sudo systemctl daemon-reload
@@ -157,15 +169,23 @@ sudo systemctl restart kubelet
 kubectl uncordon <node-to-uncordon>
 
 k drain node01 to evacted
+
 then ssh to node01
+
 then do 
+
 sudo kubeadm upgrade node
+
 apt-mark unhold kubelet kubectl && \
+
 apt-get update && apt-get install -y kubelet='1.27.x-*' kubectl='1.27.x-*' && \
+
 apt-mark hold kubelet kubectl
+
 then 
 
 sudo systemctl daemon-reload
+
 sudo systemctl restart kubelet
 # etcd backup 
   ## Stacked
@@ -223,6 +243,44 @@ ETCDCTL_API=3 etcdctl --endpoints 192.16.173.3:2379 \
 Then you need to change the ownership for the new created dir by using the following command `chown -R etcd:etcd /var/lib/etcd-data-new`
 then you should restart the daemon-reload by using `systemctl daemon-reload`
 then `systemctl restart etcd.service`
+
+# Storage
+
+## Volume types
+  - hostPath
+```    
+  volumeMounts:
+    - mountPath: /var/local/aaa
+      name: mydir
+    - mountPath: /var/local/aaa/1.txt
+      name: myfile
+  volumes:
+    - name: mydir
+      hostPath:
+        # Ensure the file directory is created.
+        path: /var/local/aaa
+        type: DirectoryOrCreate
+    - name: myfile
+      hostPath:
+        path: /var/local/aaa/1.txt
+        type: FileOrCreate
+  ```
+
+  - configMap
+```
+  volumeMounts:
+    - name: config-vol
+      mountPath: /etc/config
+  volumes:
+    - name: config-vol
+      configMap:
+        name: log-config
+        items:
+          - key: log_level
+            path: log_level
+```
+ - PVC
+
 # Imperative Commands 
   ## Doc Links
 
